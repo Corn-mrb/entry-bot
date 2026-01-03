@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ store_name }} - 체크인</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .store-name {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .store-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .status-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #43B581 0%, #3CA374 100%);
+            color: #fff;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(67, 181, 129, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .user-info {
+            background: rgba(67, 181, 129, 0.1);
+            border: 1px solid rgba(67, 181, 129, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #43B581;
+        }
+        
+        .user-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .passphrase-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        
+        .passphrase-input:focus {
+            border-color: #5865F2;
+        }
+        
+        .passphrase-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .error-message {
+            background: rgba(237, 66, 69, 0.1);
+            border: 1px solid rgba(237, 66, 69, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #ED4245;
+        }
+        
+        .success-message {
+            background: rgba(67, 181, 129, 0.1);
+            border: 1px solid rgba(67, 181, 129, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            color: #43B581;
+        }
+        
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .logout-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            text-decoration: none;
+        }
+        
+        .logout-link:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .note {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        
+        #passphrase-section {
+            display: none;
+        }
+        
+        #result-section {
+            display: none;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="store-icon">🏪</div>
+        <h1 class="store-name">{{ store_name }}</h1>
+        
+        {% if not store_exists %}
+        <div class="error-message">
+            등록되지 않은 장소입니다.
+        </div>
+        {% elif not is_logged_in %}
+        <!-- 로그인 전 -->
+        <p class="status-text">Discord 로그인이 필요합니다</p>
+        
+        <div class="warning-box">
+            web 로그인시, 디스코드 계정에 대한 보안에 문제가 발생할 수 있음을 인지하며, web 로그인시 발생하는 문제에 대한 책임은 해당 봇 사용자에게 있음을 인지합니다. 그래도 진행하시겠습니까?
+        </div>
+        
+        <a href="{{ oauth_url }}" class="btn btn-primary">APP으로 로그인 하기</a>
+        
+        <a href="discord://" class="btn btn-secondary">Discord 앱 먼저 열기</a>
+        
+        <p class="note">* APP으로 로그인 하기를 눌렀을때 WEB으로 연동되는 경우가 발생 할 수 있습니다. 해당 경우에는 봇에 사전 설명을 인지하여 주시고 진행해주세요.</p>
+        {% else %}
+        <!-- 로그인 후 -->
+        <div id="checkin-section">
+            <div class="user-info">
+                <div class="user-name">안녕하세요, {{ user.global_name or user.username }}님! 👋</div>
+            </div>
+            
+            <div id="error-box" class="error-message hidden"></div>
+            
+            <div id="passphrase-section">
+                <input type="password" id="passphrase-input" class="passphrase-input" placeholder="암구호를 입력하세요">
+            </div>
+            
+            <button id="checkin-btn" class="btn btn-success" onclick="doCheckin()">체크인하기</button>
+            
+            <a href="/logout" class="logout-link">로그아웃</a>
+        </div>
+        
+        <div id="result-section">
+            <div class="success-message">
+                <div class="success-icon">✅</div>
+                <div id="result-message"></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        const loc = "{{ loc }}";
+        let needPassphrase = false;
+        
+        async function doCheckin() {
+            const btn = document.getElementById('checkin-btn');
+            const errorBox = document.getElementById('error-box');
+            const passphraseInput = document.getElementById('passphrase-input');
+            
+            btn.disabled = true;
+            btn.textContent = '처리 중...';
+            errorBox.classList.add('hidden');
+            
+            const body = { loc };
+            if (needPassphrase && passphraseInput.value) {
+                body.passphrase = passphraseInput.value;
+            }
+            
+            try {
+                const response = await fetch('/api/checkin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 성공
+                    document.getElementById('checkin-section').classList.add('hidden');
+                    document.getElementById('result-section').style.display = 'block';
+                    
+                    let message = data.message;
+                    if (data.visit_count) {
+                        message += `<br><br>누적 ${data.visit_count}번째 방문입니다!`;
+                    }
+                    document.getElementById('result-message').innerHTML = message;
+                } else {
+                    // 실패
+                    if (data.need_passphrase) {
+                        // 암구호 입력 필요
+                        needPassphrase = true;
+                        document.getElementById('passphrase-section').style.display = 'block';
+                        passphraseInput.focus();
+                        btn.disabled = false;
+                        btn.textContent = '체크인하기';
+                    } else {
+                        // 에러 표시
+                        errorBox.textContent = data.message;
+                        errorBox.classList.remove('hidden');
+                        btn.disabled = false;
+                        btn.textContent = '체크인하기';
+                    }
+                }
+            } catch (error) {
+                errorBox.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+                errorBox.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = '체크인하기';
+            }
+        }
+        
+        // Enter 키로 체크인
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                doCheckin();
+            }
+        });
+    </script>
+</body>
+</html>
