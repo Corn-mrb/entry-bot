@@ -159,7 +159,20 @@ async def send_dm(user_id: int, content: str = None, embed: dict = None) -> bool
 # OAuth2
 # ----------------------------
 def get_oauth_authorize_url(state: str) -> str:
-    """Discord OAuth 인증 URL 생성"""
+    """Discord OAuth 인증 URL 생성 (우리 서버 콜백용)"""
+    from urllib.parse import urlencode
+    params = {
+        "client_id": DISCORD_CLIENT_ID,
+        "redirect_uri": OAUTH_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "identify",
+        "state": state,
+        "prompt": "none",
+    }
+    return "https://discord.com/oauth2/authorize?" + urlencode(params)
+
+def get_discord_authorize_url(state: str) -> str:
+    """Discord 직접 authorize URL (모바일 앱에서 열 때 사용)"""
     from urllib.parse import urlencode
     params = {
         "client_id": DISCORD_CLIENT_ID,

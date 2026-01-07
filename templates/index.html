@@ -10,57 +10,50 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            color: #e9ecff;
         }
-        
+
         .container {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 40px 30px;
-            max-width: 400px;
+            max-width: 420px;
             width: 100%;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
+        .store-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
         .store-name {
             color: #fff;
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 10px;
         }
-        
-        .store-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        
+
         .status-text {
             color: rgba(255, 255, 255, 0.7);
             font-size: 14px;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
         }
-        
-        .warning-box {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        
+
+        .status-text b.ok { color: #3ddc84; }
+        .status-text b.bad { color: #ff5a5a; }
+
         .btn {
             display: block;
             width: 100%;
@@ -74,43 +67,49 @@
             margin-bottom: 12px;
             text-decoration: none;
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
             color: #fff;
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
         }
-        
+
         .btn-secondary {
             background: rgba(255, 255, 255, 0.1);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.15);
         }
-        
+
         .btn-success {
             background: linear-gradient(135deg, #43B581 0%, #3CA374 100%);
             color: #fff;
         }
-        
+
         .btn-success:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(67, 181, 129, 0.3);
         }
-        
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
-        
+
+        .btn.big {
+            padding: 18px 24px;
+            font-size: 18px;
+            border-radius: 14px;
+        }
+
         .user-info {
             background: rgba(67, 181, 129, 0.1);
             border: 1px solid rgba(67, 181, 129, 0.3);
@@ -119,12 +118,12 @@
             margin-bottom: 20px;
             color: #43B581;
         }
-        
+
         .user-name {
             font-size: 18px;
             font-weight: 600;
         }
-        
+
         .passphrase-input {
             width: 100%;
             padding: 14px 16px;
@@ -136,15 +135,15 @@
             margin-bottom: 12px;
             outline: none;
         }
-        
+
         .passphrase-input:focus {
             border-color: #5865F2;
         }
-        
+
         .passphrase-input::placeholder {
             color: rgba(255, 255, 255, 0.4);
         }
-        
+
         .error-message {
             background: rgba(237, 66, 69, 0.1);
             border: 1px solid rgba(237, 66, 69, 0.3);
@@ -153,7 +152,7 @@
             margin-bottom: 20px;
             color: #ED4245;
         }
-        
+
         .success-message {
             background: rgba(67, 181, 129, 0.1);
             border: 1px solid rgba(67, 181, 129, 0.3);
@@ -161,12 +160,12 @@
             padding: 20px;
             color: #43B581;
         }
-        
+
         .success-icon {
             font-size: 48px;
             margin-bottom: 10px;
         }
-        
+
         .logout-link {
             display: inline-block;
             margin-top: 20px;
@@ -174,27 +173,116 @@
             font-size: 13px;
             text-decoration: none;
         }
-        
+
         .logout-link:hover {
             color: rgba(255, 255, 255, 0.8);
         }
-        
+
         .note {
             color: rgba(255, 255, 255, 0.5);
             font-size: 12px;
             margin-top: 15px;
+            line-height: 1.5;
         }
-        
+
         #passphrase-section {
             display: none;
         }
-        
+
         #result-section {
             display: none;
         }
-        
+
         .hidden {
             display: none !important;
+        }
+
+        /* Modal */
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 50;
+        }
+
+        .modal {
+            width: min(480px, 100%);
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h2 {
+            margin: 0 0 12px;
+            font-size: 20px;
+            color: #fff;
+        }
+
+        .modal p {
+            margin: 0 0 16px;
+            opacity: 0.85;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .in-app-warn {
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(255, 90, 90, 0.1);
+            border: 1px solid rgba(255, 90, 90, 0.3);
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+            color: #ff5a5a;
+        }
+
+        .security-risk {
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(255, 180, 0, 0.08);
+            border: 1px solid rgba(255, 180, 0, 0.25);
+            font-size: 12px;
+            margin: 16px 0;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .security-risk b {
+            color: #ffb400;
+        }
+
+        .modal-actions {
+            margin-top: 16px;
+        }
+
+        .mini-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .mini-btns .btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 13px;
+            margin-bottom: 0;
+        }
+
+        .modal-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .modal-row .btn {
+            flex: 1;
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -202,85 +290,312 @@
     <div class="container">
         <div class="store-icon">🏪</div>
         <h1 class="store-name">{{ store_name }}</h1>
-        
+
         {% if not store_exists %}
         <div class="error-message">
             등록되지 않은 장소입니다.
         </div>
         {% elif not is_logged_in %}
         <!-- 로그인 전 -->
-        <p class="status-text">Discord 로그인이 필요합니다</p>
-        
-        <div class="warning-box">
-            web 로그인시, 디스코드 계정에 대한 보안에 문제가 발생할 수 있음을 인지하며, web 로그인시 발생하는 문제에 대한 책임은 해당 봇 사용자에게 있음을 인지합니다. 그래도 진행하시겠습니까?
-        </div>
-        
-        <a href="{{ oauth_url }}" class="btn btn-primary">APP으로 로그인 하기</a>
-        
-        <a href="discord://" class="btn btn-secondary">Discord 앱 먼저 열기</a>
-        
-        <p class="note">* APP으로 로그인 하기를 눌렀을때 WEB으로 연동되는 경우가 발생 할 수 있습니다. 해당 경우에는 봇에 사전 설명을 인지하여 주시고 진행해주세요.</p>
+        <p class="status-text">상태: <b class="bad">로그인 필요</b></p>
+
+        <button id="login-btn" class="btn btn-primary big">Discord로 체크인</button>
+
+        <p class="note">* 버튼을 누르면 로그인 방식을 선택할 수 있습니다.</p>
         {% else %}
         <!-- 로그인 후 -->
+        <p class="status-text">상태: <b class="ok">로그인 완료</b></p>
+
         <div id="checkin-section">
             <div class="user-info">
-                <div class="user-name">안녕하세요, {{ user.global_name or user.username }}님! 👋</div>
+                <div class="user-name">{{ user.global_name or user.username }}님 환영합니다!</div>
             </div>
-            
+
             <div id="error-box" class="error-message hidden"></div>
-            
+
             <div id="passphrase-section">
                 <input type="password" id="passphrase-input" class="passphrase-input" placeholder="암구호를 입력하세요">
             </div>
-            
-            <button id="checkin-btn" class="btn btn-success" onclick="doCheckin()">체크인하기</button>
-            
+
+            <button id="checkin-btn" class="btn btn-success big">체크인하기</button>
+
             <a href="/logout" class="logout-link">로그아웃</a>
         </div>
-        
+
         <div id="result-section">
             <div class="success-message">
                 <div class="success-icon">✅</div>
                 <div id="result-message"></div>
             </div>
+            <a href="/logout" class="logout-link">로그아웃</a>
         </div>
         {% endif %}
     </div>
-    
+
+    <!-- Login Modal -->
+    <div class="backdrop" id="login-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true">
+            <h2>Discord 로그인</h2>
+            <p>APP에 로그인되어 있다면, APP에서 바로 승인 화면으로 넘어갈 수 있어요.</p>
+
+            <div class="in-app-warn" id="in-app-warn">
+                현재 <b>인앱 브라우저</b>로 열려있을 가능성이 있어요. 이 환경에서는 APP 전환이 막힐 수 있습니다.
+                가능하면 우측 상단 메뉴에서 <b>기본 브라우저(Chrome/Safari)로 열기</b>로 다시 시도해주세요.
+            </div>
+
+            <div class="modal-actions">
+                <button id="app-login-btn" class="btn btn-primary big">APP으로 로그인 하기</button>
+
+                <div class="security-risk">
+                    <b>사전 설명</b><br>
+                    1. web 로그인시, 디스코드 계정에 대한 보안에 문제가 발생할 수 있으며 이에 동의하고 인지합니다.<br>
+                    2. web 로그인 후 반드시 Discord 계정을 web에서 로그아웃 해야하며 이에 동의하고 인지합니다. (해당 봇 로그아웃이 아닌 Discord 자체 로그아웃)<br>
+                    3. web 로그인 후 Discord 계정의 비밀번호를 변경할것을 권장하며 이에 동의하고 인지합니다.<br>
+                    4. web 로그인시 발생하는 문제에 대한 책임은 해당 봇 사용자에게 있음을 동의하고 인지합니다.
+                </div>
+
+                <div class="mini-btns">
+                    <button id="open-discord-btn" class="btn btn-secondary">Discord APP 먼저 열기</button>
+                    <button id="web-login-btn" class="btn btn-secondary">WEB으로 로그인 하기</button>
+                </div>
+
+                <p class="note">* APP으로 로그인 하기를 눌렀을때 WEB 로그인창으로 연동되는 경우가 발생 할 수 있습니다. 해당 경우에 WEB에서 로그인을 진행할 시 봇에 사전 설명을 동의하며 인지하고 있는것으로 간주됩니다.</p>
+            </div>
+
+            <div class="modal-row">
+                <button id="close-modal-btn" class="btn btn-secondary">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const loc = "{{ loc }}";
+        // 서버에서 전달받은 변수들
+        const LOC = {{ loc | tojson | safe }};
+        const OAUTH_URL = {{ oauth_url | tojson | safe }};
+        const DISCORD_AUTHORIZE_URL = {{ discord_authorize_url | tojson | safe }};
+        const IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};
+
+        // 디바이스 감지
+        function isAndroid() {
+            return /Android/i.test(navigator.userAgent);
+        }
+
+        function isIOS() {
+            return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        }
+
+        function isInAppBrowser() {
+            const ua = navigator.userAgent || "";
+            return /KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua) || /NAVER\(inapp\)/i.test(ua);
+        }
+
+        // Android Intent URL 생성
+        function buildAndroidIntentUrl(webUrl) {
+            try {
+                const u = new URL(webUrl, window.location.origin);
+                const fallback = encodeURIComponent(webUrl);
+                return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':','')};package=com.discord;S.browser_fallback_url=${fallback};end`;
+            } catch (e) {
+                return "";
+            }
+        }
+
+        // Discord Scheme URL 생성 (iOS)
+        function buildDiscordSchemeUrl(webUrl) {
+            try {
+                const u = new URL(webUrl, window.location.origin);
+                if (/^discord\.com$/i.test(u.hostname) && u.pathname.startsWith("/oauth2/authorize")) {
+                    return `discord://-/oauth2/authorize${u.search}`;
+                }
+                return u.toString().replace(/^https?:\/\//i, "discord://");
+            } catch (e) {
+                return "";
+            }
+        }
+
+        // Discord 앱 열기 URL
+        function buildDiscordAppOpenUrl() {
+            if (isAndroid()) {
+                return "intent://discord.com/app#Intent;scheme=https;package=com.discord;end";
+            }
+            return "discord://";
+        }
+
+        // Fallback을 포함한 URL 열기
+        function openWithFallback(primaryUrl, fallbackUrl) {
+            const startedAt = Date.now();
+            let didHide = false;
+
+            const onHide = () => { didHide = true; };
+            document.addEventListener("visibilitychange", onHide, { once: true });
+            window.addEventListener("pagehide", onHide, { once: true });
+
+            window.location.href = primaryUrl;
+
+            setTimeout(() => {
+                const stillVisible = document.visibilityState !== "hidden" && !didHide;
+                const elapsed = Date.now() - startedAt;
+                if (stillVisible && elapsed >= 900) {
+                    window.location.href = fallbackUrl;
+                }
+            }, 950);
+        }
+
+        // APP으로 Discord OAuth 열기
+        function openDiscordOAuthInApp() {
+            const web = DISCORD_AUTHORIZE_URL || (new URL(OAUTH_URL, window.location.origin).toString());
+            const fallback = OAUTH_URL;
+
+            // PC인 경우 바로 웹으로
+            if (!isAndroid() && !isIOS()) {
+                window.location.href = fallback;
+                return;
+            }
+
+            // Android Intent
+            if (isAndroid()) {
+                const intent = buildAndroidIntentUrl(web);
+                if (intent) {
+                    openWithFallback(intent, fallback);
+                    return;
+                }
+            }
+
+            // iOS Scheme
+            const scheme = buildDiscordSchemeUrl(web);
+            if (scheme) {
+                openWithFallback(scheme, fallback);
+            } else {
+                window.location.href = fallback;
+            }
+        }
+
+        // Discord 앱 열기
+        function openDiscordApp() {
+            window.location.href = buildDiscordAppOpenUrl();
+        }
+
+        // 모달 열기/닫기
+        function openModal() {
+            const modal = document.getElementById('login-modal');
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+
+            // 인앱 브라우저 경고 표시
+            document.getElementById('in-app-warn').style.display = isInAppBrowser() ? 'block' : 'none';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('login-modal');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        // 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 로그인 버튼 (로그인 전)
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', function() {
+                    openModal();
+                });
+            }
+
+            // 모달 - APP으로 로그인
+            const appLoginBtn = document.getElementById('app-login-btn');
+            if (appLoginBtn) {
+                appLoginBtn.addEventListener('click', function() {
+                    openDiscordOAuthInApp();
+                });
+            }
+
+            // 모달 - WEB으로 로그인
+            const webLoginBtn = document.getElementById('web-login-btn');
+            if (webLoginBtn) {
+                webLoginBtn.addEventListener('click', function() {
+                    window.location.href = OAUTH_URL;
+                });
+            }
+
+            // 모달 - Discord 앱 먼저 열기
+            const openDiscordBtn = document.getElementById('open-discord-btn');
+            if (openDiscordBtn) {
+                openDiscordBtn.addEventListener('click', function() {
+                    openDiscordApp();
+                });
+            }
+
+            // 모달 닫기
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', closeModal);
+            }
+
+            // 배경 클릭시 모달 닫기
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.addEventListener('click', function(e) {
+                    if (e.target.id === 'login-modal') {
+                        closeModal();
+                    }
+                });
+            }
+
+            // 체크인 버튼 (로그인 후)
+            const checkinBtn = document.getElementById('checkin-btn');
+            if (checkinBtn) {
+                checkinBtn.addEventListener('click', doCheckin);
+            }
+        });
+
+        // 체크인 실행
         let needPassphrase = false;
-        
+
         async function doCheckin() {
             const btn = document.getElementById('checkin-btn');
             const errorBox = document.getElementById('error-box');
             const passphraseInput = document.getElementById('passphrase-input');
-            
+
             btn.disabled = true;
             btn.textContent = '처리 중...';
             errorBox.classList.add('hidden');
-            
-            const body = { loc };
-            if (needPassphrase && passphraseInput.value) {
+
+            const body = { loc: LOC };
+            if (needPassphrase && passphraseInput && passphraseInput.value) {
                 body.passphrase = passphraseInput.value;
             }
-            
+
             try {
                 const response = await fetch('/api/checkin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
+                    body: JSON.stringify(body),
+                    credentials: 'include'
                 });
-                
+
+                // 세션 만료
+                if (response.status === 401) {
+                    errorBox.textContent = '세션이 만료됐어요. Discord 로그인을 다시 진행해주세요.';
+                    errorBox.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = '체크인하기';
+                    setTimeout(() => {
+                        window.location.href = '/logout';
+                    }, 2000);
+                    return;
+                }
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     // 성공
                     document.getElementById('checkin-section').classList.add('hidden');
                     document.getElementById('result-section').style.display = 'block';
-                    
+
                     let message = data.message;
-                    if (data.visit_count) {
+                    if (data.already_checked_in) {
+                        message = '이미 오늘 체크인했습니다!';
+                    } else if (data.visit_count) {
                         message += `<br><br>누적 ${data.visit_count}번째 방문입니다!`;
                     }
                     document.getElementById('result-message').innerHTML = message;
@@ -290,12 +605,12 @@
                         // 암구호 입력 필요
                         needPassphrase = true;
                         document.getElementById('passphrase-section').style.display = 'block';
-                        passphraseInput.focus();
+                        if (passphraseInput) passphraseInput.focus();
                         btn.disabled = false;
                         btn.textContent = '체크인하기';
                     } else {
                         // 에러 표시
-                        errorBox.textContent = data.message;
+                        errorBox.textContent = data.message || '체크인에 실패했습니다.';
                         errorBox.classList.remove('hidden');
                         btn.disabled = false;
                         btn.textContent = '체크인하기';
@@ -308,10 +623,10 @@
                 btn.textContent = '체크인하기';
             }
         }
-        
+
         // Enter 키로 체크인
         document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && IS_LOGGED_IN) {
                 doCheckin();
             }
         });

@@ -13,22 +13,7 @@ KST = timezone(timedelta(hours=9))
 # Discord 설정
 # ----------------------------
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "")
-DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
-DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 DISCORD_GUILD_ID = int(os.getenv("DISCORD_GUILD_ID", "0") or 0)
-
-# ----------------------------
-# OAuth 설정
-# ----------------------------
-OAUTH_REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "")
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-
-# ----------------------------
-# 세션 설정
-# ----------------------------
-SESSION_SECRET = os.getenv("SESSION_SECRET", "change-this-secret-key")
-HTTPS_ONLY = os.getenv("HTTPS_ONLY", "false").lower() == "true"
-WEB_SESSION_TTL_SECONDS = int(os.getenv("WEB_SESSION_TTL_SECONDS", "180") or 180)
 
 # ----------------------------
 # 권한 설정

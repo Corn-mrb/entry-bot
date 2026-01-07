@@ -18,7 +18,8 @@ from database import (
     _now_kst
 )
 from discord_api import (
-    get_oauth_authorize_url, exchange_oauth_code, fetch_oauth_user,
+    get_oauth_authorize_url, get_discord_authorize_url,
+    exchange_oauth_code, fetch_oauth_user,
     get_guild_member, member_display_name, member_username,
     get_member_role_names, check_user_role_position, add_role_to_member,
     send_dm
@@ -73,7 +74,8 @@ async def index(request: Request, loc: str = ""):
     
     # OAuth URL
     oauth_url = get_oauth_authorize_url(loc) if loc else ""
-    
+    discord_authorize_url = get_discord_authorize_url(loc) if loc else ""
+
     return templates.TemplateResponse(
         "index.html",
         {
@@ -84,6 +86,7 @@ async def index(request: Request, loc: str = ""):
             "is_logged_in": is_logged_in,
             "user": user,
             "oauth_url": oauth_url,
+            "discord_authorize_url": discord_authorize_url,
         },
     )
 
@@ -165,6 +168,24 @@ async def api_checkin(request: Request):
         has_role = await check_user_role_position(user_id, min_role_id)
         if not has_role:
             role_names = await get_member_role_names(user_id)
+            
+            # 매장주에게 입장 실패 알림
+            owner_id = store.get("owner_id")
+            if owner_id:
+                now = _now_kst()
+                embed = {
+                    "title": f"⚠️ [입장 실패] {nickname}님이 입장 시도",
+                    "color": 0xFFA500,  # Orange
+                    "description": "**실패 사유**: 입장 권한 부족 (최소 역할 미달)",
+                    "fields": [
+                        {"name": "장소", "value": store["store_name"], "inline": True},
+                        {"name": "시도자", "value": f"<@{user_id}>", "inline": True},
+                        {"name": "시도 시간", "value": f"{now.strftime('%H:%M')} (KST)", "inline": True},
+                        {"name": "현재 역할", "value": ", ".join(role_names) if role_names else "(없음)", "inline": False},
+                    ]
+                }
+                await send_dm(owner_id, embed=embed)
+            
             return JSONResponse({
                 "success": False,
                 "message": "입장 권한이 없습니다. 필요한 역할이 부족합니다.",
@@ -182,6 +203,26 @@ async def api_checkin(request: Request):
             }, status_code=400)
         
         if passphrase_input != store_passphrase:
+            # 매장주에게 암구호 오류 알림
+            owner_id = store.get("owner_id")
+            if owner_id:
+                now = _now_kst()
+                role_names = await get_member_role_names(user_id)
+                
+                embed = {
+                    "title": f"⚠️ [입장 실패] {nickname}님이 입장 시도",
+                    "color": 0xFF0000,  # Red
+                    "description": "**실패 사유**: 암구호 불일치",
+                    "fields": [
+                        {"name": "장소", "value": store["store_name"], "inline": True},
+                        {"name": "시도자", "value": f"<@{user_id}>", "inline": True},
+                        {"name": "시도 시간", "value": f"{now.strftime('%H:%M')} (KST)", "inline": True},
+                        {"name": "입력한 암구호", "value": f"`{passphrase_input}`", "inline": True},
+                        {"name": "역할", "value": ", ".join(role_names) if role_names else "(없음)", "inline": False},
+                    ]
+                }
+                await send_dm(owner_id, embed=embed)
+            
             return JSONResponse({
                 "success": False,
                 "message": "암구호가 일치하지 않습니다."
@@ -209,14 +250,14 @@ async def api_checkin(request: Request):
     # 역할 목록 가져오기
     role_names = await get_member_role_names(user_id)
     
-    # 매장주에게 DM 알림
+    # 매장주에게 DM 알림 (성공)
     owner_id = store.get("owner_id")
     if owner_id:
         now = _now_kst()
         label = "오늘 첫 방문" if visit_count == 1 else f"누적 {visit_count}회차"
         
         embed = {
-            "title": f"[입장 알림] {nickname}님이 체크인했습니다! ({label})",
+            "title": f"✅ [입장 성공] {nickname}님이 체크인! ({label})",
             "color": 0x00FF00,  # Green
             "fields": [
                 {"name": "장소", "value": store["store_name"], "inline": True},
