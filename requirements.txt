@@ -16,5 +16,8 @@ pillow>=10.0.0
 # Excel Export
 openpyxl>=3.1.0
 
+# PDF Export
+reportlab>=4.0.0
+
 # Environment
 python-dotenv>=1.0.0

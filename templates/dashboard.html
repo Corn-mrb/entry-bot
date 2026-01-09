@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방문 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 24px;
+            color: #5865F2;
+        }
+        .user-info {
+            color: #888;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        select, button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        select {
+            background: #2d2d44;
+            color: #fff;
+            min-width: 200px;
+        }
+        button {
+            background: #5865F2;
+            color: #fff;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #4752c4;
+        }
+        .btn-csv { background: #28a745; }
+        .btn-csv:hover { background: #218838; }
+        .btn-xlsx { background: #17a2b8; }
+        .btn-xlsx:hover { background: #138496; }
+        .btn-pdf { background: #dc3545; }
+        .btn-pdf:hover { background: #c82333; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #2d2d44;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #5865F2;
+        }
+        .chart-container {
+            background: #2d2d44;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .chart-container h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .table-container {
+            background: #2d2d44;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-container h2 {
+            padding: 20px;
+            font-size: 18px;
+            border-bottom: 1px solid #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+        th {
+            background: #1a1a2e;
+            font-weight: 600;
+            color: #888;
+        }
+        tr:hover {
+            background: #363654;
+        }
+        tr:not(:last-child) {
+            border-bottom: 1px solid #333;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            select, button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 방문 대시보드</h1>
+            <div class="user-info">{{ user.username }}</div>
+        </header>
+
+        <div class="controls">
+            <select id="storeSelect">
+                <option value="">전체 매장</option>
+                {% for code, store in stores.items() %}
+                <option value="{{ code }}">{{ store.store_name }} ({{ code }})</option>
+                {% endfor %}
+            </select>
+            <button class="btn-csv" onclick="exportData('csv')">📥 CSV</button>
+            <button class="btn-xlsx" onclick="exportData('xlsx')">📥 Excel</button>
+            <button class="btn-pdf" onclick="exportData('pdf')">📥 PDF</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>총 방문 수</h3>
+                <div class="value" id="totalVisits">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>오늘 방문</h3>
+                <div class="value" id="todayVisits">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>매장 수</h3>
+                <div class="value" id="storeCount">{{ stores|length }}</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>📈 일별 방문 추이 (최근 30일)</h2>
+            <canvas id="dailyChart"></canvas>
+        </div>
+
+        <div class="table-container">
+            <h2>📋 방문 기록</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>매장</th>
+                        <th>사용자</th>
+                        <th>닉네임</th>
+                        <th>방문일</th>
+                        <th>시간</th>
+                    </tr>
+                </thead>
+                <tbody id="visitsTable">
+                    <tr><td colspan="5" class="loading">로딩 중...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const token = "{{ token }}";
+        const apiBase = "";
+        let dailyChart = null;
+
+        // 데이터 로드
+        async function loadData() {
+            const storeCode = document.getElementById('storeSelect').value;
+            const params = new URLSearchParams({ token });
+            if (storeCode) params.append('store_code', storeCode);
+
+            // 방문 기록
+            const visitsRes = await fetch(`${apiBase}/api/visits?${params}`);
+            const visitsData = await visitsRes.json();
+            renderVisitsTable(visitsData.visits);
+
+            // 통계
+            document.getElementById('totalVisits').textContent = visitsData.visits.length;
+            const today = new Date().toISOString().split('T')[0];
+            const todayCount = visitsData.visits.filter(v => v.visit_date === today).length;
+            document.getElementById('todayVisits').textContent = todayCount;
+
+            // 차트
+            const statsRes = await fetch(`${apiBase}/api/stats/daily?${params}&days=30`);
+            const statsData = await statsRes.json();
+            renderChart(statsData.stats);
+        }
+
+        // 방문 테이블 렌더링
+        function renderVisitsTable(visits) {
+            const tbody = document.getElementById('visitsTable');
+
+            if (visits.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty">방문 기록이 없습니다.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = visits.slice(0, 100).map(v => `
+                <tr>
+                    <td>${v.store_name || '-'}</td>
+                    <td>${v.username || '-'}</td>
+                    <td>${v.nickname || '-'}</td>
+                    <td>${v.visit_date || '-'}</td>
+                    <td>${v.visit_time || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 차트 렌더링
+        function renderChart(stats) {
+            const ctx = document.getElementById('dailyChart').getContext('2d');
+
+            if (dailyChart) {
+                dailyChart.destroy();
+            }
+
+            dailyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: stats.map(s => s.date.slice(5)),
+                    datasets: [{
+                        label: '방문 수',
+                        data: stats.map(s => s.count),
+                        borderColor: '#5865F2',
+                        backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#888' },
+                            grid: { color: '#333' }
+                        },
+                        x: {
+                            ticks: { color: '#888' },
+                            grid: { color: '#333' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 내보내기
+        function exportData(format) {
+            const storeCode = document.getElementById('storeSelect').value;
+            const params = new URLSearchParams({ token });
+            if (storeCode) params.append('store_code', storeCode);
+
+            window.location.href = `${apiBase}/api/export/${format}?${params}`;
+        }
+
+        // 매장 선택 변경
+        document.getElementById('storeSelect').addEventListener('change', loadData);
+
+        // 초기 로드
+        loadData();
+    </script>
+</body>
+</html>

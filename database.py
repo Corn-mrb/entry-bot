@@ -43,9 +43,11 @@ def save_stores():
     save_json(STORES_FILE, _stores)
 
 def get_stores() -> Dict[str, Any]:
+    load_stores()  # 최신 데이터 로드
     return _stores
 
 def get_store(store_code: str) -> Optional[Dict[str, Any]]:
+    load_stores()  # 최신 데이터 로드
     return _stores.get(store_code)
 
 def create_store(store_code: str, data: dict):
@@ -76,9 +78,11 @@ def save_visits():
     save_json(VISITS_FILE, _visits)
 
 def get_visits() -> Dict[str, List[Dict[str, Any]]]:
+    load_visits()  # 최신 데이터 로드
     return _visits
 
 def get_store_visits(store_code: str) -> List[Dict[str, Any]]:
+    load_visits()  # 최신 데이터 로드
     return _visits.get(store_code, [])
 
 def add_visit(store_code: str, user_id: int, username: str, nickname: str) -> bool:
@@ -210,6 +214,98 @@ def get_store_stats(store_code: str, start_date: str = None, end_date: str = Non
     
     return sorted(user_stats.values(), key=lambda x: x["count"], reverse=True)
 
+# ----------------------------
+# 대시보드 토큰 관리
+# ----------------------------
+TOKENS_FILE = os.path.join(DATA_DIR, "tokens.json")
+_tokens: Dict[str, Any] = {}
+
+def load_tokens() -> Dict[str, Any]:
+    global _tokens
+    _tokens = load_json(TOKENS_FILE)
+    return _tokens
+
+def save_tokens():
+    save_json(TOKENS_FILE, _tokens)
+
+def create_dashboard_token(user_id: int, username: str, expires_hours: int = 1) -> str:
+    """대시보드 접근 토큰 생성"""
+    import secrets
+    token = secrets.token_urlsafe(24)
+
+    now = _now_kst()
+    from datetime import timedelta
+    expires_at = now + timedelta(hours=expires_hours)
+
+    _tokens[token] = {
+        "user_id": user_id,
+        "username": username,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at.isoformat()
+    }
+    save_tokens()
+    return token
+
+def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    """토큰 검증. 유효하면 토큰 정보 반환, 아니면 None"""
+    # 파일에서 최신 토큰 로드
+    load_tokens()
+
+    if token not in _tokens:
+        return None
+
+    token_data = _tokens[token]
+    expires_at = datetime.fromisoformat(token_data["expires_at"])
+
+    if _now_kst() > expires_at:
+        # 만료된 토큰 삭제
+        del _tokens[token]
+        save_tokens()
+        return None
+
+    return token_data
+
+def cleanup_expired_tokens():
+    """만료된 토큰 정리"""
+    now = _now_kst()
+    expired = []
+
+    for token, data in _tokens.items():
+        expires_at = datetime.fromisoformat(data["expires_at"])
+        if now > expires_at:
+            expired.append(token)
+
+    for token in expired:
+        del _tokens[token]
+
+    if expired:
+        save_tokens()
+
+def get_daily_stats(store_code: str = None, days: int = 30) -> List[Dict[str, Any]]:
+    """일별 방문 통계"""
+    from datetime import timedelta
+
+    today = _today_kst()
+    start_date = today - timedelta(days=days)
+
+    daily = {}
+    for i in range(days + 1):
+        d = (start_date + timedelta(days=i)).isoformat()
+        daily[d] = 0
+
+    visits_to_check = _visits.get(store_code, []) if store_code else []
+    if not store_code:
+        for visits_list in _visits.values():
+            visits_to_check.extend(visits_list)
+
+    for visit in visits_to_check:
+        vd = visit.get("visit_date", "")
+        if vd in daily:
+            daily[vd] += 1
+
+    return [{"date": d, "count": c} for d, c in sorted(daily.items())]
+
 # 초기 로드
 load_stores()
 load_visits()
+load_tokens()

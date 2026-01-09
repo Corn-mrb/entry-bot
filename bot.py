@@ -15,7 +15,8 @@ from database import (
     get_stores, get_store, create_store, update_store, delete_store,
     get_store_visits, get_user_all_visits, get_user_visit_count,
     reset_today_checkin, delete_user_visits, get_store_stats,
-    get_all_visits_for_export, add_visit, save_stores, _now_kst
+    get_all_visits_for_export, add_visit, save_stores, _now_kst,
+    create_dashboard_token
 )
 
 # ----------------------------
@@ -693,204 +694,35 @@ async def cmd_regenerate_qr(interaction: discord.Interaction, 매장코드: str,
     await interaction.followup.send(embed=result_embed, file=qr_file, ephemeral=True)
 
 # ----------------------------
-# 매장 방문 (방문자 목록)
+# 매장 기록 (웹 대시보드)
 # ----------------------------
-@bot.tree.command(name="매장방문", description="매장별 방문자 목록")
-@app_commands.describe(매장코드="조회할 매장 코드")
-async def cmd_store_visits(interaction: discord.Interaction, 매장코드: str):
-    if not has_allowed_role(interaction):
-        await interaction.response.send_message("❌ 권한이 없습니다.", ephemeral=True)
-        return
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "https://entry.citadelcertify.org")
 
-    store = get_store(매장코드)
-    if not store:
-        await interaction.response.send_message("❌ 존재하지 않는 매장 코드입니다.", ephemeral=True)
-        return
-
-    visits = get_store_visits(매장코드)
-    if not visits:
-        await interaction.response.send_message(f"**{store['store_name']}**\n방문 기록이 없습니다.", ephemeral=True)
-        return
-
-    # 유저별 집계
-    user_stats = {}
-    for v in visits:
-        uid = v['user_id']
-        if uid not in user_stats:
-            user_stats[uid] = {
-                'nickname': v.get('nickname', ''),
-                'username': v.get('username', ''),
-                'count': 0
-            }
-        user_stats[uid]['count'] += 1
-
-    # 정렬
-    sorted_stats = sorted(user_stats.items(), key=lambda x: x[1]['count'], reverse=True)
-
-    lines = []
-    for i, (uid, stat) in enumerate(sorted_stats[:20], 1):
-        name = stat['nickname'] or stat['username'] or str(uid)
-        lines.append(f"{i}. {name} — {stat['count']}회")
-
-    embed = discord.Embed(
-        title=f"📋 {store['store_name']} 방문 기록",
-        description="\n".join(lines),
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text=f"총 {len(user_stats)}명 방문")
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-# ----------------------------
-# 매장 통계 (막대 그래프)
-# ----------------------------
-@bot.tree.command(name="매장통계", description="매장 방문 통계 (막대 그래프)")
-@app_commands.describe(
-    매장코드="조회할 매장 코드",
-    시작일="시작일 (YYYYMMDD)",
-    종료일="종료일 (YYYYMMDD)"
-)
-async def cmd_store_stats(
-    interaction: discord.Interaction,
-    매장코드: str,
-    시작일: str = None,
-    종료일: str = None
-):
-    if not is_admin_or_developer(interaction):
-        await interaction.response.send_message("❌ 관리자 또는 개발자만 사용 가능합니다.", ephemeral=True)
-        return
-
-    store = get_store(매장코드)
-    if not store:
-        await interaction.response.send_message("❌ 존재하지 않는 매장 코드입니다.", ephemeral=True)
-        return
-
-    # 날짜 변환
-    start_date = None
-    end_date = None
-    if 시작일:
-        try:
-            start_date = f"{시작일[:4]}-{시작일[4:6]}-{시작일[6:8]}"
-        except:
-            pass
-    if 종료일:
-        try:
-            end_date = f"{종료일[:4]}-{종료일[4:6]}-{종료일[6:8]}"
-        except:
-            pass
-
-    stats = get_store_stats(매장코드, start_date, end_date)
-
-    if not stats:
-        await interaction.response.send_message(f"**{store['store_name']}**\n해당 기간 방문 기록이 없습니다.", ephemeral=True)
-        return
-
-    # 막대 그래프 생성
-    max_count = max(s['count'] for s in stats)
-    max_bar_length = 12
-
-    lines = []
-    for i, stat in enumerate(stats[:15], 1):
-        name = stat['nickname'] or stat['username'] or str(stat['user_id'])
-        if len(name) > 10:
-            name = name[:9] + "…"
-
-        bar_length = int((stat['count'] / max_count) * max_bar_length)
-        bar = "█" * bar_length
-
-        lines.append(f"{name:<10} {bar} {stat['count']}회")
-
-    period = ""
-    if start_date and end_date:
-        period = f"\n{start_date} ~ {end_date}"
-
-    embed = discord.Embed(
-        title=f"📊 {store['store_name']} · 방문 통계{period}",
-        description="```\n" + "\n".join(lines) + "\n```",
-        color=discord.Color.gold()
-    )
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-# ----------------------------
-# 매장 방문 기록 (유저별)
-# ----------------------------
-@bot.tree.command(name="매장방문기록", description="특정 유저의 매장 방문 기록")
-@app_commands.describe(유저="조회할 유저")
-async def cmd_user_visits(interaction: discord.Interaction, 유저: discord.Member):
+@bot.tree.command(name="매장기록", description="웹 대시보드에서 방문 기록 조회")
+async def cmd_dashboard(interaction: discord.Interaction):
     if not is_admin_or_helper(interaction):
         await interaction.response.send_message("❌ 권한이 없습니다.", ephemeral=True)
         return
 
-    visits = get_user_all_visits(유저.id)
+    # 토큰 생성 (1시간 유효)
+    token = create_dashboard_token(
+        user_id=interaction.user.id,
+        username=interaction.user.display_name,
+        expires_hours=1
+    )
 
-    if not visits:
-        await interaction.response.send_message(f"**{유저.display_name}**님의 방문 기록이 없습니다.", ephemeral=True)
-        return
-
-    lines = []
-    total_count = 0
-    for i, v in enumerate(visits, 1):
-        lines.append(f"{i}. {v['store_name']} — {v['visit_count']}회 ({v['last_visit']})")
-        total_count += v['visit_count']
+    dashboard_link = f"{DASHBOARD_URL}/dashboard?token={token}"
 
     embed = discord.Embed(
-        title=f"📋 {유저.display_name}님의 방문 기록",
-        description="\n".join(lines),
+        title="📊 방문 기록 대시보드",
+        description="아래 링크를 클릭하여 대시보드에 접속하세요.",
         color=discord.Color.blue()
     )
-    embed.set_footer(text=f"총 방문: {len(visits)}개 매장 / {total_count}회")
+    embed.add_field(name="접속 링크", value=f"[대시보드 열기]({dashboard_link})", inline=False)
+    embed.add_field(name="유효 시간", value="1시간", inline=True)
+    embed.set_footer(text="링크는 본인만 사용 가능합니다.")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
-# ----------------------------
-# 매장 기록 (xls 내보내기)
-# ----------------------------
-@bot.tree.command(name="매장기록", description="전체 방문 기록 xls 다운로드")
-async def cmd_export_visits(interaction: discord.Interaction):
-    if not is_admin_or_developer(interaction):
-        await interaction.response.send_message("❌ 관리자 또는 개발자만 사용 가능합니다.", ephemeral=True)
-        return
-
-    await interaction.response.defer(ephemeral=True)
-
-    try:
-        import openpyxl
-        from openpyxl import Workbook
-
-        visits = get_all_visits_for_export()
-
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "방문기록"
-
-        # 헤더
-        ws.append(["유저명", "닉네임", "매장명", "방문일자", "방문시간"])
-
-        # 데이터
-        for v in visits:
-            ws.append([
-                v['username'],
-                v['nickname'],
-                v['store_name'],
-                v['visit_date'],
-                v['visit_time']
-            ])
-
-        # 파일 저장
-        buf = BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-
-        filename = f"방문기록_{_now_kst().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        file = discord.File(buf, filename=filename)
-
-        await interaction.followup.send(f"✅ 전체 방문 기록 ({len(visits)}건)", file=file, ephemeral=True)
-
-    except ImportError:
-        await interaction.followup.send("❌ openpyxl 패키지가 설치되지 않았습니다.", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ 오류 발생: {str(e)}", ephemeral=True)
 
 # ----------------------------
 # 매장 체크인 초기화
