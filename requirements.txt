@@ -19,5 +19,8 @@ openpyxl>=3.1.0
 # PDF Export
 reportlab>=4.0.0
 
+# Rate Limiting
+slowapi>=0.1.9
+
 # Environment
 python-dotenv>=1.0.0

@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 from datetime import datetime, date
 from typing import Optional, Dict, List, Any
 from config import DATA_DIR, STORES_FILE, VISITS_FILE, KST
@@ -26,8 +27,41 @@ def load_json(filepath: str) -> dict:
     return {}
 
 def save_json(filepath: str, data: dict):
-    with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    """Atomic write: 임시 파일에 쓴 후 rename으로 교체"""
+    import tempfile
+    import shutil
+    
+    dir_name = os.path.dirname(filepath) or "."
+    os.makedirs(dir_name, exist_ok=True)
+    
+    fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp", prefix="data_")
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        
+        # Backup (keep last 3)
+        if os.path.exists(filepath):
+            backup_dir = os.path.join(dir_name, "backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            backup_name = f"{os.path.basename(filepath)}.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            backup_path = os.path.join(backup_dir, backup_name)
+            shutil.copy2(filepath, backup_path)
+            
+            # Cleanup old backups
+            backups = sorted(
+                [os.path.join(backup_dir, f) for f in os.listdir(backup_dir) if f.startswith(os.path.basename(filepath))],
+                key=os.path.getmtime
+            )
+            while len(backups) > 3:
+                os.unlink(backups.pop(0))
+        
+        os.replace(tmp_path, filepath)
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
 
 # ----------------------------
 # 매장 데이터
@@ -229,15 +263,16 @@ def save_tokens():
     save_json(TOKENS_FILE, _tokens)
 
 def create_dashboard_token(user_id: int, username: str, expires_hours: int = 1) -> str:
-    """대시보드 접근 토큰 생성"""
+    """대시보드 접근 토큰 생성 (해시 저장)"""
     import secrets
     token = secrets.token_urlsafe(24)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
 
     now = _now_kst()
     from datetime import timedelta
     expires_at = now + timedelta(hours=expires_hours)
 
-    _tokens[token] = {
+    _tokens[token_hash] = {
         "user_id": user_id,
         "username": username,
         "created_at": now.isoformat(),
@@ -248,18 +283,24 @@ def create_dashboard_token(user_id: int, username: str, expires_hours: int = 1) 
 
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
     """토큰 검증. 유효하면 토큰 정보 반환, 아니면 None"""
-    # 파일에서 최신 토큰 로드
+    if not token:
+        return None
+    
     load_tokens()
-
-    if token not in _tokens:
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    
+    if token_hash not in _tokens:
         return None
 
-    token_data = _tokens[token]
-    expires_at = datetime.fromisoformat(token_data["expires_at"])
+    token_data = _tokens[token_hash]
+    
+    try:
+        expires_at = datetime.fromisoformat(token_data["expires_at"])
+    except (ValueError, KeyError):
+        return None
 
     if _now_kst() > expires_at:
-        # 만료된 토큰 삭제
-        del _tokens[token]
+        del _tokens[token_hash]
         save_tokens()
         return None
 
@@ -270,16 +311,21 @@ def cleanup_expired_tokens():
     now = _now_kst()
     expired = []
 
-    for token, data in _tokens.items():
-        expires_at = datetime.fromisoformat(data["expires_at"])
-        if now > expires_at:
-            expired.append(token)
+    for token_hash, data in _tokens.items():
+        try:
+            expires_at = datetime.fromisoformat(data["expires_at"])
+            if now > expires_at:
+                expired.append(token_hash)
+        except (ValueError, KeyError):
+            expired.append(token_hash)
 
-    for token in expired:
-        del _tokens[token]
+    for token_hash in expired:
+        del _tokens[token_hash]
 
     if expired:
         save_tokens()
+    
+    return len(expired)
 
 def get_daily_stats(store_code: str = None, days: int = 30) -> List[Dict[str, Any]]:
     """일별 방문 통계"""

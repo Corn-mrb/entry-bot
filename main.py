@@ -8,6 +8,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Resp
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 import qrcode
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from config import (
     SESSION_SECRET, HTTPS_ONLY, BASE_URL, 
@@ -38,6 +41,10 @@ app.add_middleware(
 )
 
 templates = Jinja2Templates(directory="templates")
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ----------------------------
 # Session TTL Middleware
@@ -131,6 +138,7 @@ async def logout(request: Request):
     return RedirectResponse(f"/?loc={loc}", status_code=302)
 
 @app.post("/api/checkin")
+@limiter.limit("10/minute")
 async def api_checkin(request: Request):
     """체크인 API"""
     user = request.session.get("user")
@@ -217,7 +225,6 @@ async def api_checkin(request: Request):
                         {"name": "장소", "value": store["store_name"], "inline": True},
                         {"name": "시도자", "value": f"<@{user_id}>", "inline": True},
                         {"name": "시도 시간", "value": f"{now.strftime('%H:%M')} (KST)", "inline": True},
-                        {"name": "입력한 암구호", "value": f"`{passphrase_input}`", "inline": True},
                         {"name": "역할", "value": ", ".join(role_names) if role_names else "(없음)", "inline": False},
                     ]
                 }

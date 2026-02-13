@@ -6,6 +6,9 @@ from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from database import (
     verify_token, get_stores, get_store, get_store_visits,
@@ -17,6 +20,10 @@ from database import (
 # ----------------------------
 app = FastAPI(title="Entry Bot Dashboard")
 templates = Jinja2Templates(directory="templates")
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ----------------------------
 # 토큰 검증 헬퍼
@@ -35,6 +42,7 @@ def check_token(token: str):
 # 대시보드 페이지
 # ----------------------------
 @app.get("/dashboard", response_class=HTMLResponse)
+@limiter.limit("30/minute")
 async def dashboard(request: Request, token: str = Query(None)):
     token_data = check_token(token)
 
@@ -51,7 +59,8 @@ async def dashboard(request: Request, token: str = Query(None)):
 # API: 매장 목록
 # ----------------------------
 @app.get("/api/stores")
-async def api_stores(token: str = Query(None)):
+@limiter.limit("60/minute")
+async def api_stores(request: Request, token: str = Query(None)):
     check_token(token)
 
     stores = get_stores()
@@ -71,7 +80,8 @@ async def api_stores(token: str = Query(None)):
 # API: 방문 기록
 # ----------------------------
 @app.get("/api/visits")
-async def api_visits(token: str = Query(None), store_code: str = Query(None)):
+@limiter.limit("60/minute")
+async def api_visits(request: Request, token: str = Query(None), store_code: str = Query(None)):
     check_token(token)
 
     if store_code:
@@ -98,7 +108,8 @@ async def api_visits(token: str = Query(None), store_code: str = Query(None)):
 # API: 일별 통계
 # ----------------------------
 @app.get("/api/stats/daily")
-async def api_daily_stats(token: str = Query(None), store_code: str = Query(None), days: int = Query(30)):
+@limiter.limit("60/minute")
+async def api_daily_stats(request: Request, token: str = Query(None), store_code: str = Query(None), days: int = Query(30)):
     check_token(token)
 
     stats = get_daily_stats(store_code, days)
@@ -108,7 +119,8 @@ async def api_daily_stats(token: str = Query(None), store_code: str = Query(None
 # API: 방문자별 통계
 # ----------------------------
 @app.get("/api/stats/visitors")
-async def api_visitor_stats(token: str = Query(None), store_code: str = Query(None)):
+@limiter.limit("60/minute")
+async def api_visitor_stats(request: Request, token: str = Query(None), store_code: str = Query(None)):
     check_token(token)
 
     if store_code:
@@ -131,7 +143,8 @@ async def api_visitor_stats(token: str = Query(None), store_code: str = Query(No
 # 내보내기: CSV
 # ----------------------------
 @app.get("/api/export/csv")
-async def export_csv(token: str = Query(None), store_code: str = Query(None)):
+@limiter.limit("5/minute")
+async def export_csv(request: Request, token: str = Query(None), store_code: str = Query(None)):
     check_token(token)
 
     if store_code:
@@ -185,7 +198,8 @@ async def export_csv(token: str = Query(None), store_code: str = Query(None)):
 # 내보내기: Excel
 # ----------------------------
 @app.get("/api/export/xlsx")
-async def export_xlsx(token: str = Query(None), store_code: str = Query(None)):
+@limiter.limit("5/minute")
+async def export_xlsx(request: Request, token: str = Query(None), store_code: str = Query(None)):
     check_token(token)
 
     try:
@@ -255,7 +269,8 @@ async def export_xlsx(token: str = Query(None), store_code: str = Query(None)):
 # 내보내기: PDF
 # ----------------------------
 @app.get("/api/export/pdf")
-async def export_pdf(token: str = Query(None), store_code: str = Query(None)):
+@limiter.limit("3/minute")
+async def export_pdf(request: Request, token: str = Query(None), store_code: str = Query(None)):
     check_token(token)
 
     try:

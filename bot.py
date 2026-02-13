@@ -121,8 +121,10 @@ class CheckinModal(discord.ui.Modal, title="체크인"):
                                 embed.add_field(name="현재 역할", value=", ".join(role_names) if role_names else "(없음)", inline=False)
 
                                 await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-                        except:
-                            pass
+                        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+                            print(f"Discord API error: {e}")
+                        except Exception as e:
+                            print(f"Unexpected error: {e}")
 
                     await interaction.followup.send("❌ 입장 권한이 없습니다.", ephemeral=True)
                     return
@@ -150,8 +152,10 @@ class CheckinModal(discord.ui.Modal, title="체크인"):
                         embed.add_field(name="역할", value=", ".join(role_names) if role_names else "(없음)", inline=False)
 
                         await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-                except:
-                    pass
+                except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+                    print(f"Discord API error: {e}")
+                except Exception as e:
+                    print(f"Unexpected error: {e}")
 
             await interaction.followup.send("❌ 암구호가 일치하지 않습니다.", ephemeral=True)
             return
@@ -187,8 +191,10 @@ async def process_checkin_deferred(interaction: discord.Interaction, store_code:
             try:
                 await member.add_roles(grant_role)
                 role_granted = True
-            except:
-                pass
+            except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+                print(f"Discord API error: {e}")
+            except Exception as e:
+                print(f"Unexpected error: {e}")
 
     # 역할 목록
     role_names = [r.name for r in member.roles if r.name != "@everyone"]
@@ -216,8 +222,10 @@ async def process_checkin_deferred(interaction: discord.Interaction, store_code:
                     embed.add_field(name="역할 부여", value="✅ 부여됨", inline=True)
 
                 await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-        except:
-            pass
+        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+            print(f"Discord API error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
     # 성공 메시지
     msg = f"✅ **{store['store_name']}** 체크인 완료!\n누적 **{visit_count}번째** 방문입니다!"
@@ -291,8 +299,10 @@ class PersistentCheckinView(discord.ui.View):
                                 embed.add_field(name="현재 역할", value=", ".join(role_names) if role_names else "(없음)", inline=False)
 
                                 await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-                        except:
-                            pass
+                        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+                            print(f"Discord API error: {e}")
+                        except Exception as e:
+                            print(f"Unexpected error: {e}")
 
                     await interaction.followup.send("❌ 입장 권한이 없습니다.", ephemeral=True)
                     return
@@ -523,8 +533,10 @@ async def cmd_update_store(
                 embed.set_footer(text="체크인은 하루 1회만 가능합니다.")
 
                 await msg.edit(embed=embed)
-        except:
-            pass
+        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+            print(f"Discord API error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
     embed = discord.Embed(
         title="✅ 매장 정보 수정 완료",
@@ -567,8 +579,10 @@ async def cmd_delete_store(interaction: discord.Interaction, 매장코드: str):
             if channel:
                 msg = await channel.fetch_message(message_id)
                 await msg.delete()
-        except:
-            pass
+        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+            print(f"Discord API error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
     delete_store(매장코드)
 
@@ -651,8 +665,10 @@ async def cmd_regenerate_qr(interaction: discord.Interaction, 매장코드: str,
             if old_channel:
                 old_msg = await old_channel.fetch_message(old_message_id)
                 await old_msg.delete()
-        except:
-            pass  # 이미 삭제됨
+        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+            print(f"Discord API error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")  # 이미 삭제됨
 
     # 새 체크인 버튼 메시지 생성
     min_role = guild.get_role(store.get("min_role_id")) if store.get("min_role_id") else None
