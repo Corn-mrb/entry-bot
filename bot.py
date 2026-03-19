@@ -100,63 +100,12 @@ class CheckinModal(discord.ui.Modal, title="체크인"):
             if min_role:
                 has_role = any(role >= min_role for role in member.roles)
                 if not has_role:
-                    # 채널에 입장 실패 알림
-                    channel_id = self.store.get("channel_id")
-                    if channel_id and guild:
-                        try:
-                            channel = guild.get_channel(channel_id)
-                            if channel:
-                                now = _now_kst()
-                                role_names = [r.name for r in member.roles if r.name != "@everyone"]
-
-                                embed = discord.Embed(
-                                    title=f"⚠️ [입장 실패] {member.display_name}님이 입장 시도",
-                                    color=discord.Color.orange(),
-                                    description="**실패 사유**: 입장 권한 부족 (최소 역할 미달)"
-                                )
-                                embed.add_field(name="장소", value=self.store["store_name"], inline=True)
-                                embed.add_field(name="시도자", value=f"<@{member.id}>", inline=True)
-                                embed.add_field(name="시도 시간", value=now.strftime('%H:%M') + " (KST)", inline=True)
-                                embed.add_field(name="필요 역할", value=min_role.name, inline=True)
-                                embed.add_field(name="현재 역할", value=", ".join(role_names) if role_names else "(없음)", inline=False)
-
-                                await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-                        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
-                            print(f"Discord API error: {e}")
-                        except Exception as e:
-                            print(f"Unexpected error: {e}")
-
                     await interaction.followup.send("❌ 입장 권한이 없습니다.", ephemeral=True)
                     return
 
         # 암구호 검증
+
         if self.passphrase.value != self.store.get("passphrase"):
-            # 채널에 실패 알림
-            channel_id = self.store.get("channel_id")
-            if channel_id and guild:
-                try:
-                    channel = guild.get_channel(channel_id)
-                    if channel:
-                        now = _now_kst()
-                        role_names = [r.name for r in member.roles if r.name != "@everyone"]
-
-                        embed = discord.Embed(
-                            title=f"⚠️ [입장 실패] {member.display_name}님이 입장 시도",
-                            color=discord.Color.red(),
-                            description="**실패 사유**: 암구호 불일치"
-                        )
-                        embed.add_field(name="장소", value=self.store["store_name"], inline=True)
-                        embed.add_field(name="시도자", value=f"<@{member.id}>", inline=True)
-                        embed.add_field(name="시도 시간", value=now.strftime('%H:%M') + " (KST)", inline=True)
-                        embed.add_field(name="입력한 암구호", value=f"`{self.passphrase.value}`", inline=True)
-                        embed.add_field(name="역할", value=", ".join(role_names) if role_names else "(없음)", inline=False)
-
-                        await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-                except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
-                    print(f"Discord API error: {e}")
-                except Exception as e:
-                    print(f"Unexpected error: {e}")
-
             await interaction.followup.send("❌ 암구호가 일치하지 않습니다.", ephemeral=True)
             return
 
@@ -199,11 +148,10 @@ async def process_checkin_deferred(interaction: discord.Interaction, store_code:
     # 역할 목록
     role_names = [r.name for r in member.roles if r.name != "@everyone"]
 
-    # 채널에 알림 (성공)
-    channel_id = store.get("channel_id")
-    if channel_id and guild:
+    # 입장이력 채널에 알림 (성공)
+    if guild:
         try:
-            channel = guild.get_channel(channel_id)
+            channel = guild.get_channel(LOG_CHANNEL_ID)
             if channel:
                 now = _now_kst()
                 label = "오늘 첫 방문" if visit_count == 1 else f"누적 {visit_count}회차"
@@ -278,32 +226,6 @@ class PersistentCheckinView(discord.ui.View):
             if min_role:
                 has_role = any(role >= min_role for role in member.roles)
                 if not has_role:
-                    # 채널에 입장 실패 알림
-                    channel_id = store.get("channel_id")
-                    if channel_id and guild:
-                        try:
-                            channel = guild.get_channel(channel_id)
-                            if channel:
-                                now = _now_kst()
-                                role_names = [r.name for r in member.roles if r.name != "@everyone"]
-
-                                embed = discord.Embed(
-                                    title=f"⚠️ [입장 실패] {member.display_name}님이 입장 시도",
-                                    color=discord.Color.orange(),
-                                    description="**실패 사유**: 입장 권한 부족 (최소 역할 미달)"
-                                )
-                                embed.add_field(name="장소", value=store["store_name"], inline=True)
-                                embed.add_field(name="시도자", value=f"<@{member.id}>", inline=True)
-                                embed.add_field(name="시도 시간", value=now.strftime('%H:%M') + " (KST)", inline=True)
-                                embed.add_field(name="필요 역할", value=min_role.name, inline=True)
-                                embed.add_field(name="현재 역할", value=", ".join(role_names) if role_names else "(없음)", inline=False)
-
-                                await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-                        except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
-                            print(f"Discord API error: {e}")
-                        except Exception as e:
-                            print(f"Unexpected error: {e}")
-
                     await interaction.followup.send("❌ 입장 권한이 없습니다.", ephemeral=True)
                     return
 
@@ -713,6 +635,7 @@ async def cmd_regenerate_qr(interaction: discord.Interaction, 매장코드: str,
 # 매장 기록 (웹 대시보드)
 # ----------------------------
 DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "https://entry.citadelcertify.org")
+LOG_CHANNEL_ID = 1450071295265079416  # ┆✅ㅣ비트코인하우스오리진∶입장이력
 
 @bot.tree.command(name="매장기록", description="웹 대시보드에서 방문 기록 조회")
 async def cmd_dashboard(interaction: discord.Interaction):
