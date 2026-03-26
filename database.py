@@ -204,22 +204,25 @@ def delete_user_visits(store_code: str, user_id: int) -> int:
     return deleted
 
 def get_all_visits_for_export() -> List[Dict[str, Any]]:
-    """전체 방문 기록 (xls 내보내기용)"""
+    """전체 방문 기록 (내보내기용)"""
     result = []
     for store_code, visits_list in _visits.items():
         store = get_store(store_code)
         store_name = store["store_name"] if store else store_code
-        
+
         for visit in visits_list:
+            visit_date = visit.get("visit_date", "")
+            visit_time = visit.get("visit_time", "")
             result.append({
-                "username": visit.get("username", ""),
-                "nickname": visit.get("nickname", ""),
                 "store_name": store_name,
-                "visit_date": visit.get("visit_date", ""),
-                "visit_time": visit.get("visit_time", "")
+                "nickname": visit.get("nickname", ""),
+                "user_id": visit.get("user_id", ""),
+                "visit_datetime": f"{visit_date} {visit_time}".strip(),
+                "visit_date": visit_date,
+                "visit_time": visit_time,
             })
-    
-    return sorted(result, key=lambda x: (x["visit_date"], x["visit_time"]), reverse=True)
+
+    return sorted(result, key=lambda x: x["visit_datetime"], reverse=True)
 
 def get_store_stats(store_code: str, start_date: str = None, end_date: str = None) -> List[Dict[str, Any]]:
     """매장 통계 (방문자별 횟수)"""

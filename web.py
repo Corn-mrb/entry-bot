@@ -151,14 +151,17 @@ async def export_csv(request: Request, token: str = Query(None), store_code: str
         store = get_store(store_code)
         visits = get_store_visits(store_code)
         visits_data = []
+        store_name = store.get("store_name", store_code) if store else store_code
         for v in visits:
+            vd = v.get("visit_date", "")
+            vt = v.get("visit_time", "")
             visits_data.append({
-                "store_name": store.get("store_name", "") if store else "",
-                "username": v.get("username", ""),
+                "store_name": store_name,
                 "nickname": v.get("nickname", ""),
-                "visit_date": v.get("visit_date", ""),
-                "visit_time": v.get("visit_time", "")
+                "user_id": v.get("user_id", ""),
+                "visit_datetime": f"{vd} {vt}".strip(),
             })
+        visits_data.sort(key=lambda x: x["visit_datetime"], reverse=True)
     else:
         visits_data = get_all_visits_for_export()
 
@@ -172,15 +175,14 @@ async def export_csv(request: Request, token: str = Query(None), store_code: str
     import io
     text_output = io.StringIO()
     writer = csv.writer(text_output)
-    writer.writerow(["매장명", "사용자명", "닉네임", "방문일", "방문시간"])
+    writer.writerow(["장소", "닉네임", "유저아이디", "방문시각"])
 
     for v in visits_data:
         writer.writerow([
             v.get("store_name", ""),
-            v.get("username", ""),
             v.get("nickname", ""),
-            v.get("visit_date", ""),
-            v.get("visit_time", "")
+            v.get("user_id", ""),
+            v.get("visit_datetime", ""),
         ])
 
     output.write(text_output.getvalue().encode('utf-8'))
@@ -212,14 +214,17 @@ async def export_xlsx(request: Request, token: str = Query(None), store_code: st
         store = get_store(store_code)
         visits = get_store_visits(store_code)
         visits_data = []
+        store_name = store.get("store_name", store_code) if store else store_code
         for v in visits:
+            vd = v.get("visit_date", "")
+            vt = v.get("visit_time", "")
             visits_data.append({
-                "store_name": store.get("store_name", "") if store else "",
-                "username": v.get("username", ""),
+                "store_name": store_name,
                 "nickname": v.get("nickname", ""),
-                "visit_date": v.get("visit_date", ""),
-                "visit_time": v.get("visit_time", "")
+                "user_id": v.get("user_id", ""),
+                "visit_datetime": f"{vd} {vt}".strip(),
             })
+        visits_data.sort(key=lambda x: x["visit_datetime"], reverse=True)
     else:
         visits_data = get_all_visits_for_export()
 
@@ -228,7 +233,7 @@ async def export_xlsx(request: Request, token: str = Query(None), store_code: st
     ws.title = "방문 기록"
 
     # 헤더
-    headers = ["매장명", "사용자명", "닉네임", "방문일", "방문시간"]
+    headers = ["장소", "닉네임", "유저아이디", "방문시각"]
     header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
 
@@ -241,17 +246,15 @@ async def export_xlsx(request: Request, token: str = Query(None), store_code: st
     # 데이터
     for row, v in enumerate(visits_data, 2):
         ws.cell(row=row, column=1, value=v.get("store_name", ""))
-        ws.cell(row=row, column=2, value=v.get("username", ""))
-        ws.cell(row=row, column=3, value=v.get("nickname", ""))
-        ws.cell(row=row, column=4, value=v.get("visit_date", ""))
-        ws.cell(row=row, column=5, value=v.get("visit_time", ""))
+        ws.cell(row=row, column=2, value=v.get("nickname", ""))
+        ws.cell(row=row, column=3, value=v.get("user_id", ""))
+        ws.cell(row=row, column=4, value=v.get("visit_datetime", ""))
 
     # 열 너비
-    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['A'].width = 22
     ws.column_dimensions['B'].width = 20
-    ws.column_dimensions['C'].width = 20
-    ws.column_dimensions['D'].width = 15
-    ws.column_dimensions['E'].width = 12
+    ws.column_dimensions['C'].width = 22
+    ws.column_dimensions['D'].width = 20
 
     output = BytesIO()
     wb.save(output)
@@ -287,14 +290,17 @@ async def export_pdf(request: Request, token: str = Query(None), store_code: str
         store = get_store(store_code)
         visits = get_store_visits(store_code)
         visits_data = []
+        store_name = store.get("store_name", store_code) if store else store_code
         for v in visits:
+            vd = v.get("visit_date", "")
+            vt = v.get("visit_time", "")
             visits_data.append({
-                "store_name": store.get("store_name", "") if store else "",
-                "username": v.get("username", ""),
+                "store_name": store_name,
                 "nickname": v.get("nickname", ""),
-                "visit_date": v.get("visit_date", ""),
-                "visit_time": v.get("visit_time", "")
+                "user_id": v.get("user_id", ""),
+                "visit_datetime": f"{vd} {vt}".strip(),
             })
+        visits_data.sort(key=lambda x: x["visit_datetime"], reverse=True)
     else:
         visits_data = get_all_visits_for_export()
 
@@ -302,14 +308,13 @@ async def export_pdf(request: Request, token: str = Query(None), store_code: str
     doc = SimpleDocTemplate(output, pagesize=A4)
 
     # 테이블 데이터
-    table_data = [["Store", "Username", "Nickname", "Date", "Time"]]
+    table_data = [["장소", "닉네임", "유저아이디", "방문시각"]]
     for v in visits_data[:100]:  # 최대 100건
         table_data.append([
             v.get("store_name", "")[:15],
-            v.get("username", "")[:15],
             v.get("nickname", "")[:15],
-            v.get("visit_date", ""),
-            v.get("visit_time", "")
+            str(v.get("user_id", "")),
+            v.get("visit_datetime", ""),
         ])
 
     table = Table(table_data)
