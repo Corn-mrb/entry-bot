@@ -125,6 +125,19 @@ async def process_checkin_deferred(interaction: discord.Interaction, store_code:
     is_new_visit = add_visit(store_code, member.id, member.name, member.display_name)
 
     if not is_new_visit:
+        # 이미 체크인했어도 역할이 없으면 부여
+        grant_role_id = store.get("grant_role_id")
+        if grant_role_id and guild:
+            grant_role = guild.get_role(grant_role_id)
+            if grant_role and grant_role not in member.roles:
+                try:
+                    await member.add_roles(grant_role)
+                    await interaction.followup.send("✅ 이미 오늘 체크인했습니다. (하루 1회)\n🎖️ 역할이 부여되었습니다!", ephemeral=True)
+                    return
+                except (discord.HTTPException, discord.Forbidden, discord.NotFound) as e:
+                    print(f"Discord API error: {e}")
+                except Exception as e:
+                    print(f"Unexpected error: {e}")
         await interaction.followup.send("✅ 이미 오늘 체크인했습니다. (하루 1회)", ephemeral=True)
         return
 
