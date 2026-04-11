@@ -121,6 +121,7 @@ def get_store_visits(store_code: str) -> List[Dict[str, Any]]:
 
 def add_visit(store_code: str, user_id: int, username: str, nickname: str) -> bool:
     """방문 기록 추가. 오늘 이미 방문했으면 False 반환"""
+    load_visits()  # 파일에서 최신 데이터 로드 (수동 수정 반영)
     if store_code not in _visits:
         _visits[store_code] = []
     
@@ -145,6 +146,7 @@ def add_visit(store_code: str, user_id: int, username: str, nickname: str) -> bo
 
 def get_user_visit_count(store_code: str, user_id: int) -> int:
     """특정 유저의 특정 매장 방문 횟수"""
+    load_visits()  # 파일에서 최신 데이터 로드
     count = 0
     for visit in _visits.get(store_code, []):
         if visit["user_id"] == user_id:
